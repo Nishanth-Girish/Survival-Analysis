@@ -1,0 +1,277 @@
+---
+title: "Untitled"
+author: "Nishanth Girish"
+date: "2023-08-23"
+output: word_document
+---
+
+```{r}
+library(survival)
+```
+
+```{r}
+tt <- c(10,7,32,23,22,6,16,34,32,25,11,20,19,6,17,35,6,13,9,6,10)
+cens <-c(1,1,0,  1, 1,1, 1, 0, 0, 0, 0, 0, 0,1, 0, 0,1, 1,0,0,0)
+
+#to incorporate censored observations
+Surv(tt, cens)
+```
+
+
+```{r}
+result.km = survfit(Surv(tt, cens) ~ 1, conf.type = "log-log" ) #1: no covariates
+summary(result.km)
+```
+
+```{r}
+plot(result.km, xlab = "Time", ylab = "Survival probabilities", conf.int = T, mark.time = T, lty = 1:2, col = 1:3)
+legend("bottomleft", legend = c("Estimates","CI"), cex = 1.0)#, lty = 1:2, col = 1:3)
+```
+
+
+```{r}
+# For Nelson-Aalen estimator
+result.km<-survfit(Surv(tt,cens)~1, conf.type = "log-log", type = "fh")
+summary(result.km)
+
+#lines(result.km, col = "red")
+# From the plot we can say
+```
+
+##############################################################################################
+
+```{r}
+library(survival)
+library(asaur)
+head(gastricXelox)
+data = gastricXelox
+```
+```{r}
+data
+```
+
+```{r}
+timeMonths<-data$timeWeeks*7/30.25
+delta<-data$delta
+result.km<-survfit(Surv(timeMonths, delta)~1, conf.type = "log-log")
+summary(result.km)
+          
+```
+```{r}
+plot(result.km, conf.int = T, mark.time = T)
+```
+```{r}
+x= seq(0,60,by=0.01)
+hist(timeMonths , freq = F, ylim = c(0, 0.08))  #freq = F
+lines(x, dweibull(x, shape = 1.09, scale =14.37),col ="red")
+lines(x, dexp(x, rate = 0.072), col="green")
+```
+
+```{r}
+library(fitdistrplus)
+fitdist(timeMonths,"weibull" ,method= "mle")
+
+fitdist(timeMonths, "exp", method= "mle")
+```
+
+
+```{r}
+#survival = 1 - CDF
+1- pweibull(timeMonths,shape=1.0998,scale=14.3710)
+
+1 -pexp(timeMonths, rate = 0.0723)
+```
+
+```{r}
+plot(1- pweibull(timeMonths,shape=1.0998,scale=14.3710))
+```
+
+
+```{r}
+#which is the best fit? # KS test:
+ks.test(timeMonths, pweibull,1.0998, 14.371)
+
+ks.test(timeMonths, pexp, 0.0723)
+```
+
+
+```{r}
+plot(result.km, conf.int = T, mark.time = T, xlab = "Time in months", ylab = "Survival probablity")
+title("Progression-free survival in Gastric Cancer")
+abline(h = 0.5, lty = 3, col = "Brown")
+abline(v = 10.2975, lty = 3, col = "Green") 
+```
+```{r}
+median(timeMonths)
+# Simple median follow-up time, censoring not considered
+median(Surv(timeMonths, delta))
+# Potential median follow up time
+
+result.km
+
+plot(result.km, conf.int = T, mark.time = T, cumhaz = T, xlab = "Time in Months", ylab = "Cumulative Hazard")
+```
+
+##############################################################################################
+
+
+
+```{r}
+library(asaur)
+head(pancreatic)
+```
+##############################################################################################
+
+
+#Left Truncation
+```{r}
+library(survival)
+library(asaur)
+head(ChanningHouse)
+tail(ChanningHouse)
+```
+```{r}
+data = ChanningHouse
+data
+```
+
+```{r}
+ChanningHouse <- within(ChanningHouse, {
+    entryYears <- entry / 12
+    exitYears <- exit/12})
+ChanningMales <- ChanningHouse[ChanningHouse$sex == "Male",]
+
+
+result.km <- survfit(Surv(entryYears, exitYears, cens, type= "counting")~1 , data = ChanningMales, conf.type ="none")
+summary(result.km)
+plot(result.km, xlim= c(64,101), xlab= "Age", ylim=c(0,1), ylab = "Survival Probability", conf.int = F)
+
+
+#Nelson-Aalen Estimator
+result.nae <- survfit(Surv(entryYears, exitYears, cens, type= "counting")~1 , type = "fleming-harrington", data = ChanningMales)
+summary(result.nae)
+lines(result.nae, col="blue", conf.int=F)
+
+result.km.68 <- survfit(Surv(entryYears, exitYears, cens, type= "counting")~1 , start.time = 68, data = ChanningMales)
+summary(result.km.68)
+lines(result.km.68, col ="green", conf.int = F)
+
+```
+```{r}
+library(survival)
+library(asaur)
+```
+
+
+```{r}
+#Log-rank test:
+
+tt <- c(6, 7, 10, 15, 19, 25)
+delta <- c(1, 0, 1, 1, 0, 1)
+trt <- c(0, 0, 1, 0, 1, 1)
+survdiff(Surv(tt, delta) ~ trt)
+```
+#Interpretation:
+p>0.05 (Calculated value < table value). We fail to reject the null hypothesis. Thus, the 2 groups are not significant different. There is no effect of the treatment.
+
+##############################################################################################
+
+```{r}
+library(survival)
+library(asaur)
+```
+
+
+```{r}
+data <- pancreatic
+data
+```
+```{r}
+data$onstudy=as.Date(data$onstudy,format="%m/%d/%Y")
+data$onstudy
+data$death=as.Date(data$death,format="%m/%d/%Y")
+data$death
+data$progression=as.Date(data$progression,format="%m/%d/%Y")
+data$progression
+
+```
+```{r}
+data
+```
+```{r}
+pancreatic2
+```
+
+```{r}
+pfs = data$progression - data$onstudy
+os = data$death - data$onstudy
+
+pfs
+os
+```
+```{r}
+data = pancreatic2
+attach(data)
+survdiff(Surv(pfs, status ) ~ stage, rho  = 1)
+```
+#Interpretation:
+p>0.05 (Calculated value < table value). We fail to reject the null hypothesis. Thus, the 2 groups are not significant different. 
+
+```{r}
+pfs.month = pfs/30.5
+plot(survfit(Surv(pfs.month)~stage), xlab ="Time months", 
+     ylab ="Survival Probability", col =c("Blue", "Red"), lwd = 2)
+legend("topright", legend = c("Locally Advanced(LA)","Metastatic(M)"), col = c("Blue","Red"),lwd=2)
+```
+##############################################################################################
+```{r}
+library(survival)
+library(asaur)
+```
+
+
+```{r}
+data = pharmacoSmoking
+attach(data)
+data
+```
+
+
+```{r}
+survdiff(Surv(ttr, relapse ) ~ grp)
+```
+#Interpretation:
+p < 0.05 (Calculated value > table value). We reject the null hypothesis. Thus, the 2 groups are significant different. 
+
+```{r}
+plot(survfit(Surv(ttr)~grp), xlab ="Time in days", 
+     ylab ="Survival Probability", col =c("Blue", "Red"), lwd = 2)
+legend("topright", legend = c("Combination","Patch only"), col = c("Blue","Red"),lwd=2)
+```
+```{r}
+#STRATIFIED LOG-RANK TEST:
+survdiff(Surv(ttr, relapse ) ~ grp + strata(ageGroup2))
+```
+#Interpretation:
+p < 0.05 (Calculated value > table value). We reject the null hypothesis. Thus, the 2 groups are significant different. 
+```{r}
+plot(survfit(Surv(ttr)~grp + strata(ageGroup2)), xlab ="Time in days", 
+     ylab ="Survival Probability", col =c("Blue", "Red"), lwd = 1)
+legend("topright", legend = c("Combination","Patch only"), col = c("Blue","Red"),lwd=1)
+```
+
+```{r}
+library(survival)
+library(asaur)
+```
+```{r}
+tt <- c(6, 7, 10, 15, 19, 25)
+delta <- c(1, 0, 1, 1, 0, 1)
+trt <- c(0, 0, 1, 0, 1, 1)
+```
+```{r}
+coxph(Surv(tt, delta) ~ trt)
+```
+
+p value > 0.05. Fail to reject null hypothesis. 
+hazard rate is lower for experimental group when compared to the control group. Not significant. 
